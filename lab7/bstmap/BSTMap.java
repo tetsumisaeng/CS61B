@@ -1,7 +1,5 @@
 package bstmap;
 
-import edu.princeton.cs.algs4.BST;
-
 import java.util.Iterator;
 import java.util.Set;
 
