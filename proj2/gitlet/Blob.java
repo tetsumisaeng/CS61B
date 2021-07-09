@@ -1,2 +1,4 @@
-package gitlet;public class Blob {
+package gitlet;
+
+public class Blob {
 }

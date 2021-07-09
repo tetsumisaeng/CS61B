@@ -1,6 +1,8 @@
 package gitlet;
 
 import java.io.File;
+import java.io.IOException;
+
 import static gitlet.Utils.*;
 
 // TODO: any imports you need here
@@ -9,7 +11,7 @@ import static gitlet.Utils.*;
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
- *  @author TODO
+ *  @author Zherui Lin
  */
 public class Repository {
     /**
@@ -25,5 +27,26 @@ public class Repository {
     /** The .gitlet directory. */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
 
-    /* TODO: fill in the rest of this class. */
+    public static final File COMMIT_DIR = join(GITLET_DIR, "commit");
+    public static final File BLOB_DIR = join(GITLET_DIR, "blob");
+    public static final File STAGEAREA_DIR = join(GITLET_DIR, "stage area");
+    public static final File head = join(GITLET_DIR, "head");
+    public static final File master = join(GITLET_DIR, "master");
+
+    /** To create the repo directory structure and make the initial commit. */
+    public static void makeRepo() {
+        GITLET_DIR.mkdir();
+        COMMIT_DIR.mkdir();
+        BLOB_DIR.mkdir();
+        STAGEAREA_DIR.mkdir();
+        makeInitialCommit();
+    }
+
+    /** To make the initial commit, and set head and master pointing to it. */
+    private static void makeInitialCommit() {
+        Commit initial = new Commit();
+        initial.makeCommit(COMMIT_DIR);
+        Utils.writeContents(head, sha1(Utils.serialize(initial)));
+        Utils.writeContents(master, sha1(Utils.serialize(initial)));
+    }
 }
