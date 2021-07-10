@@ -22,7 +22,6 @@ public class Command {
         validateNumArgs("init", args, 1);
         invalidateRepoExistence();
         Repository.makeRepo();
-
     }
 
     /** To check if a user inputs a command with the wrong number of operands. */
@@ -54,4 +53,28 @@ public class Command {
         }
     }
 
+    /** Adds a copy of the file as it currently exists to the staging area (see the description of the
+     *  commit command). For this reason, adding a file is also called staging the file for addition.
+     *  Staging an already-staged file overwrites the previous entry in the staging area with the new contents.
+     *  The staging area should be somewhere in .gitlet. If the current working version of the file is
+     *  identical to the version in the current commit, do not stage it to be added, and remove it from
+     *  the staging area if it is already there (as can happen when a file is changed, added, and then
+     *  changed back to it’s original version). The file will no longer be staged for removal (see gitlet
+     *  rm), if it was at the time of the command. If the file does not exist, print the error message
+     *  File does not exist. and exit without changing anything.*/
+    public static void addCommand(String[] args) {
+        validateNumArgs("add", args, 2);
+        validateRepoExistence();
+        validateFileExistence(args[1]);
+        Repository.addFile(args[1]);
+
+    }
+
+    /** To check if the file does exist in the CWD. */
+    private static void validateFileExistence(String filename) {
+        File check = Utils.join(CWD, filename);
+        if (!check.exists()) {
+            Utils.error("File does not exist.");
+        }
+    }
 }

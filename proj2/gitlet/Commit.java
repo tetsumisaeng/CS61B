@@ -26,7 +26,7 @@ public class Commit implements Serializable {
     private String message;
 
     private Date timestamp;
-    private Map<String, Blob> fileVersion;
+    public Map<String, String> fileVersion;
 
     /** The hashcode of parent Commit. */
     private String parent;
@@ -39,9 +39,11 @@ public class Commit implements Serializable {
         this.parent = null;
     }
 
-    /** To make the commit and save it in a file named as its sha1 hash in a directory dir. */
-    public void makeCommit(File dir) {
+    /** To make the commit, save it in a file named as its sha1 hash in a directory dir,
+     *  and return the file name. */
+    public String makeCommit(File dir) {
         Utils.writeObject(Utils.join(dir, Utils.sha1(Utils.serialize(this))), this);
+        return Utils.sha1(Utils.serialize(this));
     }
 
 }

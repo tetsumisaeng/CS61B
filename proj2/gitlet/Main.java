@@ -19,6 +19,7 @@ public class Main {
                 Command.initCommand(args);
                 break;
             case "add":
+                Command.addCommand(args);
                 break;
             default:
                 Utils.error("No command with that name exists.");
