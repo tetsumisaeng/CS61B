@@ -20,15 +20,15 @@ public class Command {
      *  automatically share this commit (they will all have the same UID) and
      *  all commits in all repositories will trace back to it.*/
     public static void initCommand(String[] args) {
-        validateNumArgs("init", args, 1);
+        validateNumArgs(args, 1);
         invalidateRepoExistence();
         Repository.makeRepo();
     }
 
     /** To check if a user inputs a command with the wrong number of operands. */
-    private static void validateNumArgs(String cmd, String[] args, int n) {
+    private static void validateNumArgs(String[] args, int n) {
         if (args.length != n) {
-            Utils.error("Incorrect operands.");
+            throw Utils.error("Incorrect operands.");
         }
     }
 
@@ -42,7 +42,7 @@ public class Command {
      *  Gitlet working directory, but is not in such a directory. */
     private static void validateRepoExistence() {
         if (!repoExistence()) {
-            Utils.error("Not in an initialized Gitlet directory.");
+            throw Utils.error("Not in an initialized Gitlet directory.");
         }
     }
 
@@ -50,7 +50,7 @@ public class Command {
      *  If so, it should abort, since it should NOT overwrite the existing system with a new one. */
     private static void invalidateRepoExistence() {
         if (repoExistence()) {
-            Utils.error("A Gitlet version-control system already exists in the current directory.");
+            throw Utils.error("A Gitlet version-control system already exists in the current directory.");
         }
     }
 
@@ -64,7 +64,7 @@ public class Command {
      *  rm), if it was at the time of the command. If the file does not exist, print the error message
      *  File does not exist. and exit without changing anything.*/
     public static void addCommand(String[] args) {
-        validateNumArgs("add", args, 2);
+        validateNumArgs(args, 2);
         validateRepoExistence();
         validateFileExistence(args[1]);
         Repository.addFile(args[1]);
@@ -75,7 +75,7 @@ public class Command {
     private static void validateFileExistence(String filename) {
         File check = Utils.join(CWD, filename);
         if (!check.exists()) {
-            Utils.error("File does not exist.");
+            throw Utils.error("File does not exist.");
         }
     }
 
@@ -91,25 +91,28 @@ public class Command {
      *  parent. Finally, files tracked in the current commit may be untracked in the new
      *  commit as a result being staged for removal by the rm command (below).*/
     public static void commitCommand(String[] args) {
-        validateLeastNumArgs("commit", args, 2);
-        validateMsgFormat(Arrays.copyOfRange(args, 1, args.length));
+        validateNumArgs(args, 2);
+        validateNonBlankMsg(args[1]);
         validateRepoExistence();
-        Repository.makeCommit(Arrays.copyOfRange(args, 1, args.length));
+        Repository.makeCommit(args[1]);
 
     }
 
-    /** To ensure a command has at least n number of arguments. */
-    private static void validateLeastNumArgs(String cmd, String[] args, int n) {
-        if (args.length < n) {
-            Utils.error("Incorrect operands.");
+    /** To ensure a message is non-blank. */
+    private static void validateNonBlankMsg(String msg) {
+        if (msg.isBlank()) {
+            throw Utils.error("Please enter a commit message.");
         }
     }
 
-    /** To ensure a message begins and ends with '"'. */
-    private static void validateMsgFormat(String[] msg) {
-        if (msg[0].charAt(0) != '"' || msg[msg.length - 1].charAt(msg[msg.length - 1].length() - 1) != '"') {
-            Utils.error("Incorrect operands.");
-        }
+    /** Unstage the file if it is currently staged for addition. If the file is tracked in the current commit,
+     *  stage it for removal and remove the file from the working directory if the user has not already done so
+     *  (do not remove it unless it is tracked in the current commit). Failure cases: If the file is neither staged
+     *  nor tracked by the head commit, print the error message No reason to remove the file.*/
+    public static void rmCommand(String[] args) {
+        validateNumArgs(args, 2);
+        validateRepoExistence();
+        Repository.rmFile(args[1]);
     }
 
 }

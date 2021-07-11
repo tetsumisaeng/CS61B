@@ -56,7 +56,7 @@ public class Commit implements Serializable {
         fileVersion = other.fileVersion;
     }
 
-    /** To add or update a filename-blobhash entry in the map*/
+    /** To add or update a filename-blobhash entry in the map. */
     public void changeFileVersion(String filename, String blobhash) {
         if (fileVersion == null) {
             fileVersion = new HashMap<>();
@@ -64,7 +64,12 @@ public class Commit implements Serializable {
         fileVersion.put(filename, blobhash);
     }
 
-    /** To set the parent of the commit.  */
+    /** To remove a filename-blobhash entry in the map. */
+    public void removeFile(String filename) {
+        fileVersion.remove(filename);
+    }
+
+    /** To set the parent of the commit. */
     public void setParent(String parent) {
         this.parent = parent;
     }

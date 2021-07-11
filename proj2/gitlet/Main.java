@@ -24,8 +24,11 @@ public class Main {
             case "commit":
                 Command.commitCommand(args);
                 break;
+            case "rm":
+                Command.rmCommand(args);
+                break;
             default:
-                Utils.error("No command with that name exists.");
+                throw Utils.error("No command with that name exists.");
         }
     }
 

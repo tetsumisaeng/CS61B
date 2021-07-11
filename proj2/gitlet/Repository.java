@@ -2,7 +2,11 @@ package gitlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static gitlet.Utils.*;
 
@@ -33,8 +37,17 @@ public class Repository {
     public static final File staging_area = join(GITLET_DIR, "staging area");
     public static final File head = join(GITLET_DIR, "head");
     public static final File master = join(GITLET_DIR, "master");
-    public static final File current = join(GITLET_DIR, "current");
-    public static HashMap<String, String> stagedfilemap;
+    public static StagingArea stagedfile;
+
+    /** A StagingArea object can tell the staged addition map and staged removal set.*/
+    private static class StagingArea implements Serializable {
+        Map<String, String> addition;
+        Set<String> removal;
+        StagingArea() {
+            addition = new HashMap<>();
+            removal = new HashSet<>();
+        }
+    }
 
     /** To create the repo directory structure and make the initial commit. */
     public static void makeRepo() {
@@ -55,7 +68,6 @@ public class Repository {
         initial.saveCommit(COMMIT_DIR);
         Utils.writeContents(head, sha1(Utils.serialize(initial)));
         Utils.writeContents(master, sha1(Utils.serialize(initial)));
-        Utils.writeContents(current, sha1(Utils.serialize(initial)));
     }
 
     /** To make a blob of a file and update the staging_area with a new filename-blobhash pair.
@@ -63,13 +75,18 @@ public class Repository {
      *  by put(). */
     public static void addFile(String filename) {
         String blobhash = addBlob(filename);
+        stagedfile = getStagedFile();
+        updateStagedAddition(filename, blobhash);
+        Utils.writeObject(staging_area, stagedfile);
+    }
+
+    /** To get the stagedfile object from staging_area file. */
+    private static StagingArea getStagedFile() {
         if (!Utils.readContentsAsString(staging_area).equals("")) {
-            stagedfilemap = Utils.readObject(staging_area, HashMap.class);
+            return Utils.readObject(staging_area, StagingArea.class);
         } else {
-            stagedfilemap = new HashMap<>();
+            return new StagingArea();
         }
-        updateStage(filename, blobhash);
-        Utils.writeObject(staging_area, stagedfilemap);
     }
 
     /** To add a new blob form a file, save it in the blob_dir, and return the blob sha1 hash. */
@@ -90,54 +107,69 @@ public class Repository {
 
     /** To get the current Commit. */
     private static Commit getCurrentCommit() {
-        File currentcommitfile = Utils.join(COMMIT_DIR, Utils.readContentsAsString(current));
+        File currentcommitfile = Utils.join(COMMIT_DIR, Utils.readContentsAsString(head));
         return Utils.readObject(currentcommitfile, Commit.class);
     }
 
-    /** To update staging area. If the current working version of the file (represented as blobhash)
+    /** To update staged addition map in the staging area. If the current working version of the file (represented as blobhash)
      *  is identical to the version in the current commit, do not stage it to be added, and remove it from
      *  the staging area if it is already there. Otherwise, add the file to staging area. */
-    private static void updateStage(String filename, String blobhash) {
+    private static void updateStagedAddition(String filename, String blobhash) {
         if (blobhash.equals(checkCurrentVersion(filename))) {
-            stagedfilemap.remove(filename);
+            stagedfile.addition.remove(filename);
         } else {
-            stagedfilemap.put(filename, blobhash);
+            stagedfile.addition.put(filename, blobhash);
         }
+    }
+
+    /** Unstage the file if it is currently staged for addition. If the file is tracked in the current commit,
+     *  stage it for removal and REMOVE the file from the working directory. If the file is neither staged
+     *  nor tracked by the head commit, print the error message No reason to remove the file.*/
+    public static void rmFile(String filename) {
+        stagedfile = getStagedFile();
+        Commit currentcommit = getCurrentCommit();
+        boolean changed = false;
+        if (stagedfile.addition.containsKey(filename)) {
+            stagedfile.addition.remove(filename);
+            changed = true;
+        }
+        if (currentcommit.fileVersion != null && currentcommit.fileVersion.containsKey(filename)) {
+            stagedfile.removal.add(filename);
+            Utils.restrictedDelete(join(CWD, filename));
+            changed = true;
+        }
+        if (changed == false) {
+            throw Utils.error("No reason to remove the file.");
+        }
+        Utils.writeObject(staging_area, stagedfile);
     }
 
     /** To make a new commit with a msg based on the staging area. Set the current commit as the parent
      *  of the new commit. Set head and master pointing to the new commmit. And finally clean the staging area. */
-    public static void makeCommit(String[] msg) {
-        Commit make = new Commit(stringArrayToString(msg));
+    public static void makeCommit(String msg) {
+        Commit make = new Commit(msg);
         Commit currentcommit = getCurrentCommit();
         make.copyFileVersion(currentcommit);
         updateFileVersion(make);
-        make.setParent(Utils.readContentsAsString(current));
+        make.setParent(Utils.readContentsAsString(head));
         make.saveCommit(COMMIT_DIR);
         Utils.writeContents(head, sha1(Utils.serialize(make)));
         Utils.writeContents(master, sha1(Utils.serialize(make)));
-        Utils.writeContents(current, sha1(Utils.serialize(make)));
         Utils.writeContents(staging_area);
     }
 
-    /** To convert a string array to a whole string with space among each origin string. */
-    private static String stringArrayToString(String[] sa) {
-        String result = "";
-        for (String s : sa) {
-            result += s + " ";
-        }
-        return result.trim();
-    }
-
-    /** To update the file version of a commit based on the staging area. */
+    /** To update the file version of a commit based on the staging area including addition and removal.
+     *  If no files have been staged, abort. Print the message No changes added to the commit.*/
     private static void updateFileVersion(Commit commit) {
-        if (!Utils.readContentsAsString(staging_area).equals("")) {
-            stagedfilemap = Utils.readObject(staging_area, HashMap.class);
-        } else {
-            stagedfilemap = new HashMap<>();
+        stagedfile = getStagedFile();
+        if (stagedfile == null) {
+            throw Utils.error("No changes added to the commit.");
         }
-        for (String filename : stagedfilemap.keySet()) {
-            commit.changeFileVersion(filename, stagedfilemap.get(filename));
+        for (String filename : stagedfile.addition.keySet()) {
+            commit.changeFileVersion(filename, stagedfile.addition.get(filename));
+        }
+        for (String filename : stagedfile.removal) {
+            commit.removeFile(filename);
         }
     }
 
