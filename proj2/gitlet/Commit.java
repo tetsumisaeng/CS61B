@@ -5,6 +5,7 @@ package gitlet;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.HashMap;
 import java.util.Map;
 
 /** Represents a gitlet commit object.
@@ -35,15 +36,36 @@ public class Commit implements Serializable {
     public Commit() {
         this.message = "initial commit";
         this.timestamp = new Date(0);
-        this.fileVersion = null;
-        this.parent = null;
+    }
+
+    /** To create a new Commit with a message string and current time. */
+    public Commit(String msg) {
+        this.message = msg;
+        this.timestamp = new Date();
     }
 
     /** To make the commit, save it in a file named as its sha1 hash in a directory dir,
      *  and return the file name. */
-    public String makeCommit(File dir) {
+    public String saveCommit(File dir) {
         Utils.writeObject(Utils.join(dir, Utils.sha1(Utils.serialize(this))), this);
         return Utils.sha1(Utils.serialize(this));
     }
 
+    /** To copy the filename-blobhash map from another commit. */
+    public void copyFileVersion(Commit other) {
+        fileVersion = other.fileVersion;
+    }
+
+    /** To add or update a filename-blobhash entry in the map*/
+    public void changeFileVersion(String filename, String blobhash) {
+        if (fileVersion == null) {
+            fileVersion = new HashMap<>();
+        }
+        fileVersion.put(filename, blobhash);
+    }
+
+    /** To set the parent of the commit.  */
+    public void setParent(String parent) {
+        this.parent = parent;
+    }
 }

@@ -21,6 +21,9 @@ public class Main {
             case "add":
                 Command.addCommand(args);
                 break;
+            case "commit":
+                Command.commitCommand(args);
+                break;
             default:
                 Utils.error("No command with that name exists.");
         }

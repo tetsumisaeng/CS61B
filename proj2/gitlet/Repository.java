@@ -3,7 +3,6 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 
 import static gitlet.Utils.*;
 
@@ -35,7 +34,7 @@ public class Repository {
     public static final File head = join(GITLET_DIR, "head");
     public static final File master = join(GITLET_DIR, "master");
     public static final File current = join(GITLET_DIR, "current");
-    private static HashMap<String, String> stagedfilemap;
+    public static HashMap<String, String> stagedfilemap;
 
     /** To create the repo directory structure and make the initial commit. */
     public static void makeRepo() {
@@ -47,15 +46,13 @@ public class Repository {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        stagedfilemap = new HashMap<>();
-        Utils.writeObject(staging_area, stagedfilemap);
         makeInitialCommit();
     }
 
     /** To make the initial commit, and set head and master pointing to it. */
     private static void makeInitialCommit() {
         Commit initial = new Commit();
-        initial.makeCommit(COMMIT_DIR);
+        initial.saveCommit(COMMIT_DIR);
         Utils.writeContents(head, sha1(Utils.serialize(initial)));
         Utils.writeContents(master, sha1(Utils.serialize(initial)));
         Utils.writeContents(current, sha1(Utils.serialize(initial)));
@@ -66,8 +63,9 @@ public class Repository {
      *  by put(). */
     public static void addFile(String filename) {
         String blobhash = addBlob(filename);
-        stagedfilemap = Utils.readObject(staging_area, HashMap.class);
-        if (stagedfilemap == null) {
+        if (!Utils.readContentsAsString(staging_area).equals("")) {
+            stagedfilemap = Utils.readObject(staging_area, HashMap.class);
+        } else {
             stagedfilemap = new HashMap<>();
         }
         updateStage(filename, blobhash);
@@ -83,11 +81,17 @@ public class Repository {
     /** To check the content of a file in the current commit. If the file exists,
      *  return the content sha1 hash, otherwise return null. */
     private static String checkCurrentVersion(String filename) {
-        Commit currentcommit = Utils.readObject(current, Commit.class);
-        if (currentcommit.fileVersion.containsKey(filename)) {
+        Commit currentcommit = getCurrentCommit();
+        if (currentcommit.fileVersion != null && currentcommit.fileVersion.containsKey(filename)) {
             return currentcommit.fileVersion.get(filename);
         }
         return null;
+    }
+
+    /** To get the current Commit. */
+    private static Commit getCurrentCommit() {
+        File currentcommitfile = Utils.join(COMMIT_DIR, Utils.readContentsAsString(current));
+        return Utils.readObject(currentcommitfile, Commit.class);
     }
 
     /** To update staging area. If the current working version of the file (represented as blobhash)
@@ -95,11 +99,46 @@ public class Repository {
      *  the staging area if it is already there. Otherwise, add the file to staging area. */
     private static void updateStage(String filename, String blobhash) {
         if (blobhash.equals(checkCurrentVersion(filename))) {
-            if (stagedfilemap.containsKey(filename)) {
-                stagedfilemap.remove(filename);
-            }
+            stagedfilemap.remove(filename);
         } else {
             stagedfilemap.put(filename, blobhash);
         }
     }
+
+    /** To make a new commit with a msg based on the staging area. Set the current commit as the parent
+     *  of the new commit. Set head and master pointing to the new commmit. And finally clean the staging area. */
+    public static void makeCommit(String[] msg) {
+        Commit make = new Commit(stringArrayToString(msg));
+        Commit currentcommit = getCurrentCommit();
+        make.copyFileVersion(currentcommit);
+        updateFileVersion(make);
+        make.setParent(Utils.readContentsAsString(current));
+        make.saveCommit(COMMIT_DIR);
+        Utils.writeContents(head, sha1(Utils.serialize(make)));
+        Utils.writeContents(master, sha1(Utils.serialize(make)));
+        Utils.writeContents(current, sha1(Utils.serialize(make)));
+        Utils.writeContents(staging_area);
+    }
+
+    /** To convert a string array to a whole string with space among each origin string. */
+    private static String stringArrayToString(String[] sa) {
+        String result = "";
+        for (String s : sa) {
+            result += s + " ";
+        }
+        return result.trim();
+    }
+
+    /** To update the file version of a commit based on the staging area. */
+    private static void updateFileVersion(Commit commit) {
+        if (!Utils.readContentsAsString(staging_area).equals("")) {
+            stagedfilemap = Utils.readObject(staging_area, HashMap.class);
+        } else {
+            stagedfilemap = new HashMap<>();
+        }
+        for (String filename : stagedfilemap.keySet()) {
+            commit.changeFileVersion(filename, stagedfilemap.get(filename));
+        }
+    }
+
 }
