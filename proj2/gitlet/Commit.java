@@ -24,13 +24,13 @@ public class Commit implements Serializable {
      */
 
     /** The message of this Commit. */
-    private String message;
+    public String message;
 
     private Date timestamp;
     public Map<String, String> fileVersion;
 
     /** The hashcode of parent Commit. */
-    private String parent;
+    public String parent;
 
     /** To create the initial Commit when commanding 'init'. */
     public Commit() {
@@ -72,5 +72,14 @@ public class Commit implements Serializable {
     /** To set the parent of the commit. */
     public void setParent(String parent) {
         this.parent = parent;
+    }
+
+    /** To print out the commit id, the time the commit was made, and the commit message. */
+    public void printCommit() {
+        Utils.message("===");
+        Utils.message("commit %s", Utils.sha1(Utils.serialize(this)));
+        Utils.message("Date: %S", timestamp.toString());
+        Utils.message(message);
+        Utils.message("");
     }
 }

@@ -32,6 +32,13 @@ public class Command {
         }
     }
 
+    /** To ensure a command with at least n number of operands. */
+    private static void validateAtLeastNumArgs(String[] args, int n) {
+        if (args.length < n) {
+            throw Utils.error("Incorrect operands.");
+        }
+    }
+
     /** To tell if '.gitlet' exists in CWD. */
     private static boolean repoExistence() {
         File check = Utils.join(CWD, ".gitlet");
@@ -113,6 +120,79 @@ public class Command {
         validateNumArgs(args, 2);
         validateRepoExistence();
         Repository.rmFile(args[1]);
+    }
+
+    /** Starting at the current head commit, display information about each commit backwards along the commit tree
+     *  until the initial commit, following the first parent commit links, ignoring any second parents found in merge
+     *  commits. This set of commit nodes is called the commit’s history. For every node in this history,
+     *  the information it should display is the commit id, the time the commit was made, and the commit message. */
+    public static void logCommand(String[] args) {
+        validateNumArgs(args, 1);
+        validateRepoExistence();
+        Repository.showLog();
+    }
+
+    /** Like log, except displays information about all commits ever made. The order of the commits does not matter. */
+    public static void globalLogCommand(String[] args) {
+        validateNumArgs(args, 1);
+        validateRepoExistence();
+        Repository.showGlobalLog();
+    }
+
+    /** Prints out the ids of all commits that have the given commit message, one per line.
+     *  If there are multiple such commits, it prints the ids out on separate lines.
+     *  The commit message is a single operand; to indicate a multiword message, put the operand in quotation marks.
+     *  If no such commit exists, prints the error message Found no commit with that message. */
+    public static void findCommand(String[] args) {
+        validateNumArgs(args, 2);
+        validateRepoExistence();
+        Repository.printCommitWithMsg(args[1]);
+    }
+
+    /** Checkout is a kind of general command that can do a few different things depending on what its arguments are. */
+    public static void checkoutCommand(String[] args) {
+        validateAtLeastNumArgs(args, 2);
+        if (args[1].equals("--")) {
+            checkoutFile(args);
+        } else if (args.length >= 3 && args[2].equals(("--"))) {
+            checkoutCommitFile(args);
+        } else {
+            checkoutBranch(args);
+        }
+    }
+
+
+    /** Takes the version of the file as it exists in the head commit and puts it in the working directory,
+     *  overwriting the version of the file that’s already there if there is one.
+     *  The new version of the file is not staged.
+     *  If the file does not exist in the previous commit, abort,
+     *  printing the error message File does not exist in that commit. Do not change the CWD. */
+    private static void checkoutFile(String[] args) {
+        validateNumArgs(args, 3);
+        validateRepoExistence();
+        Repository.checkoutFile(args[2]);
+    }
+
+    /** Takes the version of the file as it exists in the commit with the given id, and puts it
+     *  in the working directory, overwriting the version of the file that’s already there if there is one.
+     *  The new version of the file is not staged.
+     *  If no commit with the given id exists, print No commit with that id exists.
+     *  Otherwise, if the file does not exist in the given commit, print the same message as for failure case 1.
+     *  Do not change the CWD.*/
+    private static void checkoutCommitFile(String[] args) {
+        validateNumArgs(args, 4);
+        validateRepoExistence();
+        Repository.checkoutCommitFile(args[1], args[3]);
+    }
+
+    /** Takes all files in the commit at the head of the given branch, and puts them in the working directory,
+     * overwriting the versions of the files that are already there if they exist. Also, at the end of this command,
+     * the given branch will now be considered the current branch (HEAD). Any files that are tracked
+     * in the current branch but are not present in the checked-out branch are deleted. The staging area is cleared,
+     * unless the checked-out branch is the current branch. */
+    private static void checkoutBranch(String[] args) {
+        validateNumArgs(args, 2);
+        validateRepoExistence();
     }
 
 }

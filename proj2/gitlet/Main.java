@@ -27,6 +27,18 @@ public class Main {
             case "rm":
                 Command.rmCommand(args);
                 break;
+            case "log": // have not finished merged information
+                Command.logCommand(args);
+                break;
+            case "global-log":
+                Command.globalLogCommand(args);
+                break;
+            case "find":
+                Command.findCommand(args);
+                break;
+            case "checkout":
+                Command.checkoutCommand(args);
+                break;
             default:
                 throw Utils.error("No command with that name exists.");
         }

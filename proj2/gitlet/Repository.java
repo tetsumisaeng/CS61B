@@ -3,10 +3,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -107,8 +104,7 @@ public class Repository {
 
     /** To get the current Commit. */
     private static Commit getCurrentCommit() {
-        File currentcommitfile = Utils.join(COMMIT_DIR, Utils.readContentsAsString(head));
-        return Utils.readObject(currentcommitfile, Commit.class);
+        return findCommitWithID(Utils.readContentsAsString(head));
     }
 
     /** To update staged addition map in the staging area. If the current working version of the file (represented as blobhash)
@@ -171,6 +167,78 @@ public class Repository {
         for (String filename : stagedfile.removal) {
             commit.removeFile(filename);
         }
+    }
+
+    /** Starting at the current head commit, display information about each commit backwards
+     *  along the commit tree until the initial commit, following the first parent commit links,
+     *  ignoring any second parents found in merge commits.*/
+    public static void showLog() {
+        showLogFrom(getCurrentCommit());
+    }
+
+    /** To display information about each commit backwards along the commit tree form commit c. */
+    private static void showLogFrom(Commit c) {
+        c.printCommit();
+        if (c.parent != null) {
+            showLogFrom(findCommitWithID(c.parent));
+        }
+    }
+
+    /** To find a commit in the directory based on its sha1code.
+     *  If no commit with the given id exists, print No commit with that id exists.*/
+    private static Commit findCommitWithID(String commitID) {
+        File target = Utils.join(COMMIT_DIR, commitID);
+        if (!target.exists()) {
+            throw Utils.error("No commit with that id exists.");
+        }
+        return Utils.readObject(target, Commit.class);
+    }
+
+    /** To display information about all commits ever made. The order of the commits does not matter.*/
+    public static void showGlobalLog() {
+        List<String> commitIDlist = Utils.plainFilenamesIn(COMMIT_DIR);
+        for (String commitID: commitIDlist) {
+            findCommitWithID(commitID).printCommit();
+        }
+    }
+
+    /** To print out the ID of the commit with the given message.
+     *  If no such commit exists, prints the error message Found no commit with that message.*/
+    public static void printCommitWithMsg(String msg) {
+        List<String> commitIDlist = Utils.plainFilenamesIn(COMMIT_DIR);
+        boolean found = false;
+        for (String commitID :commitIDlist) {
+            if (findCommitWithID(commitID).message.equals(msg)) {
+                Utils.message(commitID);
+                found = true;
+            }
+        }
+        if (!found) {
+            throw Utils.error("Found no commit with that message.");
+        }
+    }
+
+    /** Takes the version of the file as it exists in the head commit and puts it in the working directory. */
+    public static void checkoutFile(String filename) {
+        checkoutFileFromCommit(filename, getCurrentCommit());
+    }
+
+    /** To take the version of the file in the commit and put or overwrite it in the working directory.
+     *  If the file does not exist in the commit, abort. Do not change the CWD.*/
+    private static void checkoutFileFromCommit(String filename, Commit commit) {
+        if (!commit.fileVersion.containsKey(filename)) {
+            throw Utils.error("File does not exist in that commit.");
+        }
+        Blob target = Utils.readObject(join(BLOB_DIR, commit.fileVersion.get(filename)), Blob.class);
+        Utils.writeContents(join(CWD, filename), target.getContent());
+    }
+
+    /** Takes the version of the file as it exists in the commit with the given id,
+     *  and puts it in the working directory, overwriting the version of the file that’s already there if there is one.
+     *  The new version of the file is not staged.
+     *  If no commit with the given id exists, print No commit with that id exists.*/
+    public static void checkoutCommitFile(String commitID, String filename) {
+        checkoutFileFromCommit(filename, findCommitWithID(commitID));
     }
 
 }

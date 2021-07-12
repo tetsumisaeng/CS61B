@@ -11,7 +11,7 @@ public class Blob implements Serializable {
 
     /** To create a blob from a file with its name and content. */
     public Blob(String filename) {
-        content = Utils.readContentsAsString(new File(filename));
+        this.content = Utils.readContentsAsString(new File(filename));
         this.filename = filename;
     }
 
@@ -22,6 +22,8 @@ public class Blob implements Serializable {
         return Utils.sha1(content);
     }
 
-
-
+    /** To get the content of the blob.*/
+    public String getContent() {
+        return this.content;
+    }
 }
