@@ -1,5 +1,6 @@
 package gitlet;
 
+import static gitlet.Utils.*;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author Zherui Lin
@@ -11,7 +12,7 @@ public class Main {
      */
     public static void main(String[] args) {
         if (args.length == 0) {
-            Utils.error("Please enter a command.");
+            error("Please enter a command.");
         }
         String firstArg = args[0];
         switch(firstArg) {
@@ -39,8 +40,20 @@ public class Main {
             case "checkout":
                 Command.checkoutCommand(args);
                 break;
+            case "branch":
+                Command.branchCommand(args);
+                break;
+            case "rm-branch":
+                Command.removeBranchCommand(args);
+                break;
+            case "reset":
+                Command.resetCommand(args);
+                break;
+            case "status":
+                Command.statusCommand(args);
+                break;
             default:
-                throw Utils.error("No command with that name exists.");
+                throw error("No command with that name exists.");
         }
     }
 

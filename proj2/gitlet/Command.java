@@ -1,7 +1,7 @@
 package gitlet;
 
 import java.io.File;
-import java.util.Arrays;
+import static gitlet.Utils.*;
 
 public class Command {
 
@@ -28,20 +28,20 @@ public class Command {
     /** To check if a user inputs a command with the wrong number of operands. */
     private static void validateNumArgs(String[] args, int n) {
         if (args.length != n) {
-            throw Utils.error("Incorrect operands.");
+            throw error("Incorrect operands.");
         }
     }
 
     /** To ensure a command with at least n number of operands. */
     private static void validateAtLeastNumArgs(String[] args, int n) {
         if (args.length < n) {
-            throw Utils.error("Incorrect operands.");
+            throw error("Incorrect operands.");
         }
     }
 
     /** To tell if '.gitlet' exists in CWD. */
     private static boolean repoExistence() {
-        File check = Utils.join(CWD, ".gitlet");
+        File check = join(CWD, ".gitlet");
         return check.exists();
     }
 
@@ -49,7 +49,7 @@ public class Command {
      *  Gitlet working directory, but is not in such a directory. */
     private static void validateRepoExistence() {
         if (!repoExistence()) {
-            throw Utils.error("Not in an initialized Gitlet directory.");
+            throw error("Not in an initialized Gitlet directory.");
         }
     }
 
@@ -57,7 +57,7 @@ public class Command {
      *  If so, it should abort, since it should NOT overwrite the existing system with a new one. */
     private static void invalidateRepoExistence() {
         if (repoExistence()) {
-            throw Utils.error("A Gitlet version-control system already exists in the current directory.");
+            throw error("A Gitlet version-control system already exists in the current directory.");
         }
     }
 
@@ -80,9 +80,9 @@ public class Command {
 
     /** To check if the file does exist in the CWD. */
     private static void validateFileExistence(String filename) {
-        File check = Utils.join(CWD, filename);
+        File check = join(CWD, filename);
         if (!check.exists()) {
-            throw Utils.error("File does not exist.");
+            throw error("File does not exist.");
         }
     }
 
@@ -108,7 +108,7 @@ public class Command {
     /** To ensure a message is non-blank. */
     private static void validateNonBlankMsg(String msg) {
         if (msg.isBlank()) {
-            throw Utils.error("Please enter a commit message.");
+            throw error("Please enter a commit message.");
         }
     }
 
@@ -186,13 +186,49 @@ public class Command {
     }
 
     /** Takes all files in the commit at the head of the given branch, and puts them in the working directory,
-     * overwriting the versions of the files that are already there if they exist. Also, at the end of this command,
-     * the given branch will now be considered the current branch (HEAD). Any files that are tracked
-     * in the current branch but are not present in the checked-out branch are deleted. The staging area is cleared,
-     * unless the checked-out branch is the current branch. */
+     *  overwriting the versions of the files that are already there if they exist. Also, at the end of this command,
+     *  the given branch will now be considered the current branch (HEAD). Any files that are tracked
+     *  in the current branch but are not present in the checked-out branch are deleted. The staging area is cleared,
+     *  unless the checked-out branch is the current branch. */
     private static void checkoutBranch(String[] args) {
         validateNumArgs(args, 2);
         validateRepoExistence();
+        Repository.checkoutBranch(args[1]);
     }
 
+    /** Creates a new branch with the given name, and points it at the current head commit.
+     *  A branch is nothing more than a name for a reference (a SHA-1 identifier) to a commit node.
+     *  This command does NOT immediately switch to the newly created branch (just as in real Git).
+     *  Before you ever call branch, your code should be running with a default branch called master. */
+    public static void branchCommand(String[] args) {
+        validateNumArgs(args, 2);
+        validateRepoExistence();
+        Repository.createBranch(args[1]);
+    }
+
+    /** Deletes the branch with the given name. This only means to delete the pointer associated with the branch;
+     *  it does not mean to delete all commits that were created under the branch, or anything like that. */
+    public static void removeBranchCommand(String[] args) {
+        validateNumArgs(args, 2);
+        validateRepoExistence();
+        Repository.removeBranch(args[1]);
+    }
+
+    /** Checks out all the files tracked by the given commit. Removes tracked files that are not present in that
+     *  commit. Also moves the current branch’s head to that commit node. See the intro for an example of what happens
+     *  to the head pointer after using reset. The [commit id] may be abbreviated as for checkout. The staging area is
+     *  cleared. The command is essentially checkout of an arbitrary commit that also changes the current branch head.*/
+    public static void resetCommand(String[] args) {
+        validateNumArgs(args, 2);
+        validateRepoExistence();
+        Repository.resetCurrentBranch(args[1]);
+    }
+
+    /** Displays what branches currently exist, and marks the current branch with a *. Also displays what files have
+     *  been staged for addition or removal. */
+    public static void statusCommand(String[] args) {
+        validateNumArgs(args, 1);
+        validateRepoExistence();
+        Repository.showStatus();
+    }
 }

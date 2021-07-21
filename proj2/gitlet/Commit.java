@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
 import java.util.HashMap;
 import java.util.Map;
+import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
@@ -47,8 +48,8 @@ public class Commit implements Serializable {
     /** To make the commit, save it in a file named as its sha1 hash in a directory dir,
      *  and return the file name. */
     public String saveCommit(File dir) {
-        Utils.writeObject(Utils.join(dir, Utils.sha1(Utils.serialize(this))), this);
-        return Utils.sha1(Utils.serialize(this));
+        writeObject(join(dir, sha1(serialize(this))), this);
+        return sha1(serialize(this));
     }
 
     /** To copy the filename-blobhash map from another commit. */
@@ -76,10 +77,10 @@ public class Commit implements Serializable {
 
     /** To print out the commit id, the time the commit was made, and the commit message. */
     public void printCommit() {
-        Utils.message("===");
-        Utils.message("commit %s", Utils.sha1(Utils.serialize(this)));
-        Utils.message("Date: %S", timestamp.toString());
-        Utils.message(message);
-        Utils.message("");
+        message("===");
+        message("commit %s", sha1(serialize(this)));
+        message("Date: %S", timestamp.toString());
+        message(message);
+        message("");
     }
 }
