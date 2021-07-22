@@ -317,12 +317,14 @@ public class Repository {
         List<String> allfiles = plainFilenamesIn(CWD);
         Commit currentcommit = getCurrentCommit();
         stagedfile = getStagedFile();
-        Set<String> untrackedfiles = new HashSet<>();
+        Set<String> untrackedfiles = new TreeSet<>();
         for (String filename : allfiles) {
             untrackedfiles.add(filename);
         }
-        for (String filename : currentcommit.fileVersion.keySet()) {
-            untrackedfiles.remove(filename);
+        if (currentcommit.fileVersion != null) {
+            for (String filename : currentcommit.fileVersion.keySet()) {
+                untrackedfiles.remove(filename);
+            }
         }
         for (String filename : stagedfile.addition.keySet()) {
             untrackedfiles.remove(filename);
@@ -337,9 +339,11 @@ public class Repository {
         List<String> allfiles = plainFilenamesIn(CWD);
         Commit currentcommit = getCurrentCommit();
         stagedfile = getStagedFile();
-        Set<String> deletedfiles = new HashSet<>();
-        for (String filename : currentcommit.fileVersion.keySet()) {
-            deletedfiles.add(filename);
+        Set<String> deletedfiles = new TreeSet<>();
+        if (currentcommit.fileVersion != null) {
+            for (String filename : currentcommit.fileVersion.keySet()) {
+                deletedfiles.add(filename);
+            }
         }
         for (String filename : stagedfile.addition.keySet()) {
             deletedfiles.add(filename);
@@ -360,14 +364,14 @@ public class Repository {
         List<String> allfiles = plainFilenamesIn(CWD);
         Commit currentcommit = getCurrentCommit();
         stagedfile = getStagedFile();
-        Set<String> modifiedfiles = new HashSet<>();
+        Set<String> modifiedfiles = new TreeSet<>();
         for (String filename : allfiles) {
             String filecontenthash = sha1(readContentsAsString(new File(filename)));
             if (stagedfile.addition.containsKey(filename)) {
                 if (!filecontenthash.equals(stagedfile.addition.get(filename))) {
                     modifiedfiles.add(filename);
                 }
-            } else if (currentcommit.fileVersion.containsKey(filename) && !filecontenthash.equals(currentcommit.fileVersion.get(filename))) {
+            } else if (currentcommit.fileVersion != null && currentcommit.fileVersion.containsKey(filename) && !filecontenthash.equals(currentcommit.fileVersion.get(filename))) {
                 modifiedfiles.add(filename);
             }
         }
@@ -447,6 +451,37 @@ public class Repository {
             message(untrackedfile);
         }
         message("");
+    }
+
+    /***/
+    public static void mergeBranch(String branchname) {
+        Commit givencommit = findCommitWithID(readContentsAsString(join(BRANCH_DIR, branchname)));
+        Commit currentcommit = getCurrentCommit();
+        Commit splitpoint = findSplitPoint(givencommit, currentcommit);
+    }
+
+    /** To find the split point commit of two commits. The split point is a latest common ancestor of the current
+     *  and given branch heads: - A common ancestor is a commit to which there is a path (of 0 or more parent pointers)
+     *  from both branch heads. - A latest common ancestor is a common ancestor that is not an ancestor of any other common ancestor.*/
+    private static Commit findSplitPoint(Commit c1, Commit c2) {
+        PriorityQueue<Commit> pq1 = new PriorityQueue<>();
+        PriorityQueue<Commit> pq2 = new PriorityQueue<>();
+        while (!c1.equals(c2)) {
+            if (c1.compareTo(c2) <= 0) {
+                pq1.add(findCommitWithID(c1.parent));
+                if (c1.secondparent != null) {
+                    pq1.add(findCommitWithID(c1.secondparent));
+                }
+                c1 = pq1.poll();
+            } else {
+                pq2.add(findCommitWithID(c2.parent));
+                if (c2.secondparent != null) {
+                    pq2.add(findCommitWithID(c2.secondparent));
+                }
+                c2 = pq2.poll();
+            }
+        }
+        return c1;
     }
 
 }

@@ -52,6 +52,9 @@ public class Main {
             case "status":
                 Command.statusCommand(args);
                 break;
+            case "merge":
+                Command.mergeCommand(args);
+                break;
             default:
                 throw error("No command with that name exists.");
         }

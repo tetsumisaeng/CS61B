@@ -231,4 +231,11 @@ public class Command {
         validateRepoExistence();
         Repository.showStatus();
     }
+
+    /** Merges files from the given branch into the current branch. */
+    public static void mergeCommand(String[] args) {
+        validateNumArgs(args, 2);
+        validateRepoExistence();
+        Repository.mergeBranch(args[1]);
+    }
 }

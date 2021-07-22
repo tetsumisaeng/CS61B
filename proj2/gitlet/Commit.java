@@ -15,7 +15,7 @@ import static gitlet.Utils.*;
  *
  *  @author Zherui Lin
  */
-public class Commit implements Serializable {
+public class Commit implements Serializable, Comparable<Commit> {
     /**
      * TODO: add instance variables here.
      *
@@ -27,11 +27,12 @@ public class Commit implements Serializable {
     /** The message of this Commit. */
     public String message;
 
-    private Date timestamp;
+    public Date timestamp;
     public Map<String, String> fileVersion;
 
     /** The hashcode of parent Commit. */
     public String parent;
+    public String secondparent;
 
     /** To create the initial Commit when commanding 'init'. */
     public Commit() {
@@ -82,5 +83,21 @@ public class Commit implements Serializable {
         message("Date: %S", timestamp.toString());
         message(message);
         message("");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        Commit other = (Commit) o;
+        if (sha1(this) == sha1(other)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /** NOTE: Later commit will be dropped from pq first, so commit comparator is opposite with date comparator. */
+    @Override
+    public int compareTo(Commit other) {
+        return other.timestamp.compareTo(this.timestamp);
     }
 }
